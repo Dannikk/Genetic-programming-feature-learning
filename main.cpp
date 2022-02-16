@@ -19,7 +19,91 @@
 #include <stdio.h>
 #include "cgp.h"
 #include <time.h>
+#include <stdlib.h>
+#include <math.h>
 
+
+double partialModelError(struct parameters *params, struct chromosome *chromo, struct dataSet *data){
+
+    int i, p;
+    double totalError = 0;
+    double imageError = 0;
+
+    double meanImage = 0;
+    double meanPred = 0;
+
+    double variancePred = 0;
+    double correlation = 0;
+
+    double a, b;
+
+    double *imagePred;
+
+    const int numImages = getNumImages(params);
+    const int numRes = getImageResolution(params);
+
+    imagePred = (double*)malloc(numRes*sizeof(double));
+
+    if(getNumChromosomeInputs(chromo) !=getNumDataSetInputs(data)){
+        printf("Error: the number of chromosome inputs must match the number of inputs specified in the dataSet.\n");
+        printf("Terminating.\n");
+        exit(0);
+    }
+
+    if(getNumChromosomeOutputs(chromo) != getNumDataSetOutputs(data)){
+        printf("Error: the number of chromosome outputs must match the number of outputs specified in the dataSet.\n");
+        printf("Terminating.\n");
+        exit(0);
+    }
+
+    for (i=0; i<numImages; i++) {
+        // calculation of predicted
+        for (p=0; p<numRes; p++)
+            imagePred[p] = 0;
+        for (p=0; p<numRes; p++) {
+            executeChromosome(chromo, getDataSetSampleInputs(data, i*numImages + p));
+            imagePred[p] = getChromosomeOutput(chromo,0);
+        }
+
+        // MSE calculation for one image
+        imageError = 0;
+        for (p=0; p<numRes; p++) {
+            imageError += pow(getDataSetSampleOutput(data,i*numImages + p,0) - imagePred[p], 2);
+        }
+
+        // ls coefs calculation
+
+        // mean calculation
+        meanImage = 0;
+        meanPred = 0;
+        for (p=0; p<numRes; p++){
+            meanImage += getDataSetSampleOutput(data,i*numImages + p,0);
+            meanPred += imagePred[p];
+        }
+
+        // calculation of variance of predicted image and correlation
+        variancePred = 0;
+        correlation = 0;
+        for (p=0; p<numRes; p++) {
+            variancePred += pow(imagePred[p] - meanPred, 2);
+            correlation +=  (imagePred[p] - meanPred)*
+                            (getDataSetSampleOutput(data,i*numImages + p,0) - meanImage);
+        }
+
+        // save A and B coefficients (linear scaling)
+        b = correlation / variancePred;
+        a = meanImage - b*meanPred;
+        setA(chromo, i, a);
+        setB(chromo, i, b);
+
+        totalError += imageError;
+    }
+
+    free(imagePred);
+
+
+    return totalError / numImages;
+}
 
 
 int learn_features(const int dimension, const int ext_iter) {

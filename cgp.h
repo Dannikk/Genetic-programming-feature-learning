@@ -1061,14 +1061,14 @@ DLL_EXPORT double getChromosomeOutput(struct chromosome *chromo, int output);
 
 
 // DNA:
-DLL_EXPORT double getA(struct chromosome *chromo);
+DLL_EXPORT double getA(struct chromosome *chromo, int i);
 
-DLL_EXPORT double getB(struct chromosome *chromo);
+DLL_EXPORT double getB(struct chromosome *chromo, int i);
 
 
-DLL_EXPORT void setA(struct chromosome *chromo, const double a);
+DLL_EXPORT void setA(struct chromosome *chromo, int i, const double a);
 
-DLL_EXPORT void setB(struct chromosome *chromo, const double b);
+DLL_EXPORT void setB(struct chromosome *chromo, int i, const double b);
 
 
 
@@ -1558,6 +1558,25 @@ DLL_EXPORT struct dataSet *initialiseDataSetFromArrays(int numInputs, int numOut
 */
 DLL_EXPORT struct dataSet *initialiseDataSetFromFile(char const *file);
 
+// added by: DNA
+
+DLL_EXPORT struct dataSet *initialiseDataSetFromImages(char const *path);
+
+// added by: DNA
+
+DLL_EXPORT int getNumImages(const struct parameters* params);
+
+// added by: DNA
+
+DLL_EXPORT void setNumImages(struct parameters* params, const int num);
+
+// added by: DNA
+
+DLL_EXPORT int getImageResolution(const struct parameters* params);
+
+// added by: DNA
+
+DLL_EXPORT void setImageResolution(struct parameters* params, const int res);
 
 /*
 	Function: freeDataSet

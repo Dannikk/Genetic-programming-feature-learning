@@ -42,6 +42,7 @@
 	Structure definitions
 */
 
+// edited by Danilov N.
 struct parameters {
 	int mu;
 	int lambda;
@@ -66,6 +67,10 @@ struct parameters {
 	void (*reproductionScheme)(struct parameters *params, struct chromosome **parents, struct chromosome **children, int numParents, int numChildren);
 	char reproductionSchemeName[REPRODUCTIONSCHEMENAMELENGTH];
 	int numThreads;
+
+    // DNA: num of images and resolution
+    int numImages;
+    int resolution;
 };
 
 
@@ -86,7 +91,8 @@ struct chromosome {
     int generation;
 
     // DNA: ls coefficients
-    double a, b;
+    double* a;
+    double* b;
 };
 
 
@@ -315,6 +321,30 @@ DLL_EXPORT void printParameters(struct parameters *params) {
 	printf("Threads:\t\t\t%d\n", params->numThreads);
 	printFunctionSet(params);
 	printf("-----------------------------------------------------------\n\n");
+}
+
+// added by: DNA
+
+DLL_EXPORT int getNumImages(const struct parameters* params) {
+    return params->numImages;
+}
+
+// added by: DNA
+
+DLL_EXPORT void setNumImages(struct parameters* params, const int num) {
+    params->numImages = num;
+}
+
+// added by: DNA
+
+DLL_EXPORT int getImageResolution(const struct parameters* params) {
+    return params->resolution;
+}
+
+// added by: DNA
+
+DLL_EXPORT void setImageResolution(struct parameters* params, const int res) {
+    params->resolution = res;
 }
 
 
@@ -1235,26 +1265,26 @@ DLL_EXPORT double getChromosomeOutput(struct chromosome *chromo, int output) {
 
 // added by: DNA
 
-DLL_EXPORT double getA(struct chromosome *chromo) {
-    return chromo->a;
+DLL_EXPORT double getA(struct chromosome *chromo, int i) {
+    return chromo->a[i];
 }
 
 // added by: DNA
 
-DLL_EXPORT double getB(struct chromosome *chromo) {
-    return chromo->b;
+DLL_EXPORT double getB(struct chromosome *chromo, int i) {
+    return chromo->b[i];
 }
 
 // added by: DNA
 
-DLL_EXPORT void setA(struct chromosome *chromo, const double a) {
-    chromo->a = a;
+DLL_EXPORT void setA(struct chromosome *chromo, int i, const double a) {
+    chromo->a[i] = a;
 }
 
 // added by: DNA
 
-DLL_EXPORT void setB(struct chromosome *chromo, const double b) {
-    chromo->b = b;
+DLL_EXPORT void setB(struct chromosome *chromo, int i, const double b) {
+    chromo->b[i] = b;
 }
 
 
@@ -2427,6 +2457,83 @@ DLL_EXPORT struct dataSet *initialiseDataSetFromFile(char const *file) {
 
 	return data;
 }
+
+// added by: DNA
+
+//DLL_EXPORT struct dataSet *initialiseDataSetFromImages(char const *path) {
+//    int i;
+//    struct dataSet *data;
+//    FILE *fp;
+//    char *line, *record;
+//    char buffer[8192];
+//    int lineNum = -1;
+//    int col;
+//
+//    /* attempt to open the given file */
+//    fp = fopen(file, "r");
+//
+//    /* if the file cannot be found */
+//    if (fp == NULL) {
+//        printf("Error: file '%s' cannot be found.\nTerminating CGP-Library.\n", file);
+//        exit(0);
+//    }
+//
+//    /* initialise memory for data structure */
+//    data = (struct dataSet*)malloc(sizeof(struct dataSet));
+//
+//    /* for every line in the given file */
+//    while ( (line = fgets(buffer, sizeof(buffer), fp)) != NULL) {
+//
+//        /* deal with the first line containing meta data */
+//        if (lineNum == -1) {
+//
+//            sscanf(line, "%d,%d,%d", &(data->numInputs), &(data->numOutputs), &(data->numSamples));
+//
+//            data->inputData = (double**)malloc(data->numSamples * sizeof(double*));
+//            data->outputData = (double**)malloc(data->numSamples * sizeof(double*));
+//
+//            for (i = 0; i < data->numSamples; i++) {
+//                data->inputData[i] = (double*)malloc(data->numInputs * sizeof(double));
+//                data->outputData[i] = (double*)malloc(data->numOutputs * sizeof(double));
+//            }
+//        }
+//            /* the other lines contain input output pairs */
+//        else {
+//
+//            /* get the first value on the given line */
+//            record = strtok(line, " ,\n");
+//            col = 0;
+//
+//            /* until end of line */
+//            while (record != NULL) {
+//
+//                /* if its an input value */
+//                if (col < data->numInputs) {
+//                    data->inputData[lineNum][col] = atof(record);
+//                }
+//
+//                    /* if its an output value */
+//                else {
+//
+//                    data->outputData[lineNum][col - data->numInputs] = atof(record);
+//                }
+//
+//                /* get the next value on the given line */
+//                record = strtok(NULL, " ,\n");
+//
+//                /* increment the current col index */
+//                col++;
+//            }
+//        }
+//
+//        /* increment the current line index */
+//        lineNum++;
+//    }
+//
+//    fclose(fp);
+//
+//    return data;
+//}
 
 
 /*
