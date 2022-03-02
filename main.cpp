@@ -16,11 +16,19 @@
 	along with CGP-Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
+#include <cstdio>
 #include "cgp.h"
-#include <time.h>
-#include <stdlib.h>
-#include <math.h>
+#include <ctime>
+#include <cstdlib>
+#include <cmath>
+#include <cstdio>
+#include <opencv2/opencv.hpp>
+#include <Windows.h>
+#include <tchar.h>
+#include <cstring>
+
+using namespace cv;
+using namespace std;
 
 
 double partialModelError(struct parameters *params, struct chromosome *chromo, struct dataSet *data){
@@ -47,6 +55,7 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
     if(getNumChromosomeInputs(chromo) !=getNumDataSetInputs(data)){
         printf("Error: the number of chromosome inputs must match the number of inputs specified in the dataSet.\n");
         printf("Terminating.\n");
+        // return
         exit(0);
     }
 
@@ -106,8 +115,75 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
 }
 
 
+struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width, int height, bool logging){
+    vector<string> imageDirs = vector<string>();
+
+    string source = R"(C:\Users\nikit\CLionProjects\opencv_test\images\)";
+    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\opencv_test\images\*)");
+
+    int resolution = width*height;
+
+    double** outputs;
+    double** inputs;
+
+    Mat image;
+
+    WIN32_FIND_DATA FindFileData;
+    HANDLE hf;
+
+    hf=FindFirstFile(src2find, &FindFileData);
+
+    if (hf!=INVALID_HANDLE_VALUE){
+        do{
+            if (strcmp(FindFileData.cFileName, ".") != 0 &&
+                strcmp(FindFileData.cFileName, "..") != 0)  {
+                imageDirs.emplace_back(source + FindFileData.cFileName);
+            }
+        }
+        while (FindNextFile(hf,&FindFileData)!=0);
+        FindClose(hf);
+    }
+
+    if (logging){
+        cout << "imageDirs: " << endl;
+        for(const string& dir: imageDirs)
+            cout << dir << endl;
+    }
+
+//    int width = 2048;
+//    int height = 2048;
+    numImages = int(imageDirs.size());
+
+    if (numImages > int(imageDirs.size())) {
+        cout << "Warning!\n"
+                "\tExpected number of images is %d, but real number of images is %d" <<
+                numImages << int(imageDirs.size()) << "\n";
+        numImages = int(imageDirs.size());
+    }
+
+    outputs = new double*[numImages * resolution];
+    inputs = new double*[numImages * resolution];
+
+    for (int i = 0; i < numImages; i++) {
+        if (logging){
+            cout << "Reading: " << imageDirs[i] << " ..." << endl;
+        }
+        image = imread(imageDirs[i], IMREAD_GRAYSCALE);
+
+        uchar *arr = image.isContinuous() ? image.data : image.clone().data;
+
+        for (int k = 0; k < resolution; k++) {
+            inputs[i * resolution + k] = new double[2]{double(k / width),
+                                                       double(k % width)};
+            outputs[i * resolution + k] = new double[1]{double(arr[k])};
+        }
+    }
+
+    return initialiseDataSetFromArrays(2, 1, numImages, inputs[0], outputs[0]);
+}
+
 int learn_features(const int dimension, const int ext_iter) {
-    struct parameters* params = NULL;
+    struct parameters* params = nullptr;
     struct dataSet* trainingData = NULL;
     struct chromosome* chromo = NULL;
     struct chromosome** models = NULL;

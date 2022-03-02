@@ -1560,10 +1560,6 @@ DLL_EXPORT struct dataSet *initialiseDataSetFromFile(char const *file);
 
 // added by: DNA
 
-DLL_EXPORT struct dataSet *initialiseDataSetFromImages(char const *path);
-
-// added by: DNA
-
 DLL_EXPORT int getNumImages(const struct parameters* params);
 
 // added by: DNA

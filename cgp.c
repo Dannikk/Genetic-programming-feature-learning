@@ -894,6 +894,13 @@ DLL_EXPORT struct chromosome *initialiseChromosome(struct parameters *params) {
 	/* used interally when exicuting chromosome */
 	chromo->nodeInputsHold = (double*)malloc(params->arity * sizeof(double));
 
+    // added by: DNA
+
+    chromo->a = (double*)malloc(sizeof(double)*getNumImages(params));
+    chromo->b = (double*)malloc(sizeof(double)*getNumImages(params));
+
+    //
+
 	return chromo;
 }
 
@@ -1077,6 +1084,14 @@ DLL_EXPORT struct chromosome *initialiseChromosomeFromChromosome(struct chromoso
 	/* used internally by exicute chromosome */
 	chromoNew->nodeInputsHold = (double*)malloc(chromo->arity * sizeof(double));
 
+    // added by: DNA
+
+    printf("initialiseChromosomeFromChromosome");
+    chromoNew->a = chromo->a;
+    chromoNew->b = chromo->b;
+
+    //
+
 	return chromoNew;
 }
 
@@ -1105,6 +1120,13 @@ DLL_EXPORT void freeChromosome(struct chromosome *chromo) {
 	free(chromo->outputNodes);
 	free(chromo->activeNodes);
 	free(chromo);
+
+    // added by: DNA
+
+    free(chromo->a);
+    free(chromo->b);
+
+    //
 }
 
 
@@ -2163,6 +2185,13 @@ DLL_EXPORT void copyChromosome(struct chromosome *chromoDest, struct chromosome 
 
 	/* copy generation */
 	chromoDest->generation = chromoSrc->generation;
+
+    // added by: DNA
+
+    chromoDest->a = chromoSrc->a;
+    chromoDest->b = chromoSrc->b;
+
+    //
 }
 
 /*
