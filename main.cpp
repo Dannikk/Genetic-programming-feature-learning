@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdio>
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
 #include <Windows.h>
 #include <tchar.h>
 #include <cstring>
@@ -145,14 +146,13 @@ struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width,
     }
 
     if (logging){
-        cout << "imageDirs: " << endl;
+        cout << "Images were found:" << endl;
         for(const string& dir: imageDirs)
-            cout << dir << endl;
+            cout << "\t" << dir << endl;
     }
 
 //    int width = 2048;
 //    int height = 2048;
-    numImages = int(imageDirs.size());
 
     if (numImages > int(imageDirs.size())) {
         cout << "Warning!\n"
@@ -175,40 +175,93 @@ struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width,
         for (int k = 0; k < resolution; k++) {
             inputs[i * resolution + k] = new double[2]{double(k / width),
                                                        double(k % width)};
-            outputs[i * resolution + k] = new double[1]{double(arr[k])};
+            outputs[i * resolution + k] = new double[1]{double(arr[k]) / 255.0};
         }
     }
+
+    int d = 1362585;
+    int c = 0;
+    double *testArr = new double[4194404];
+    for (int i=0; i < 1000; i++){
+        for (int j=0; j < 1000; j++){
+//            cout << *outputs[2048*i + 2048*665 + 665 + j] << ", ";
+//            cout << 2048*i + 2048*665 + 665 + j << "_";
+            testArr[c] = *outputs[2048*(i) + 2048*665 + 665 + j];
+//            cout << testArr[c] << "_";
+            c++;
+        }
+//        cout << endl;
+    }
+
+    double *tarr = new double[49]{1, 0, 0, 0, 0, 0, 0,
+                                  0, 1, 0, 0, 0, 0, 0,
+                                  0, 0, 1, 0, 0, 0, 0,
+                                  0, 0, 0, 1, 0, 0, 0,
+                                  0, 0, 0, 0, 1, 0, 0,
+                                  0, 0, 0, 0, 0, 1, 0,
+                                  0, 0, 0, 0, 0, 0, 1};
+
+    cout << "recording finished" << endl;
+    cv::Mat greyImg = cv::Mat(1000, 1000, CV_64F, testArr);
+    greyImg *= 255.0;
+//    std::memcpy(greyImg.data, &tarr, 7 * 7 * sizeof(uint8_t));
+    imwrite("test.png", greyImg);
+    greyImg *= 1 / 255.0;
+    std::string greyArrWindow = "Grey Array Image";
+    cv::namedWindow(greyArrWindow, cv::WINDOW_NORMAL);
+    cv::imshow(greyArrWindow, greyImg);
+    waitKey(0);
+
 
     return initialiseDataSetFromArrays(2, 1, numImages, inputs[0], outputs[0]);
 }
 
 int learn_features(const int dimension, const int ext_iter) {
+    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\opencv_test\images\)");
+    const int numImages = 1;
+    const int width = 2048;
+    const int height = 2048;
+
     struct parameters* params = nullptr;
     struct dataSet* trainingData = NULL;
-    struct chromosome* chromo = NULL;
+    vector<struct chromosome*> chromos;
     struct chromosome** models = NULL;
 
-    int numInputs = 82;
+    int numInputs = 2;
     int numNodes = 100;
-    int numOutputs = 19;
+    int numOutputs = 1;
     int nodeArity = 2;
 
-    int numThreads = 4;
-
-    int numGens = 20000;
-    double targetFitness = 10;
+    int numThreads = 1;
+    int numGens = 2000;
+    double targetFitness = 0.1;
     int updateFrequency = 500;
 
     params = initialiseParameters(numInputs, numNodes, numOutputs, nodeArity);
     addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1");
     setNumThreads(params, numThreads);
-
     setTargetFitness(params, targetFitness);
-
     setUpdateFrequency(params, updateFrequency);
 
+//    important detail for GPFL
+    setNumImages(params, numImages);
+    setImageResolution(params, width*height);
+
+    cout << "Hello" << endl;
+
+    trainingData = loadDataSetFromImages(src2find, numImages, width, height, true);
+
+    for (int m = 0; m < ext_iter; m++) {
+        chromos.push_back(runCGP(params, trainingData, numGens));
 
 
+
+    }
+
+
+    freeDataSet(trainingData);
+//    freeChromosome(chromo);
+    freeParameters(params);
     return 0;
 }
 
@@ -391,18 +444,19 @@ int learn_features(const int dimension, const int ext_iter) {
 
 int main(void) {
 
-    time_t timeStart, timeEnd;
+    cout << "Hello" << endl;
+    /*time_t timeStart, timeEnd;
     double totalTime;
     struct parameters* params = NULL;
     struct dataSet* trainingData = NULL;
-    struct chromosome* chromo = NULL;
+    struct chromosome* chromo = NULL;*/
 
     /*int numInputs = 1;
     int numNodes = 15;
     int numOutputs = 1;
     int nodeArity = 2;*/
 
-    int numInputs = 82;
+    /*int numInputs = 82;
     int numNodes = 100;
     int numOutputs = 19;
     int nodeArity = 2;
@@ -410,7 +464,7 @@ int main(void) {
     int numThreads = 4;
 
     int numGens = 2000;
-    /*double targetFitness = 0.1;*/
+    double targetFitness = 0.1;
     double targetFitness = 100;
     int updateFrequency = 500;
 
@@ -430,7 +484,7 @@ int main(void) {
     timeStart = time(NULL);
 
     // Note: you may need to check this path such that it is relative to your executable
-    /*trainingData = initialiseDataSetFromFile("../../dataSets/symbolic.data");*/
+    trainingData = initialiseDataSetFromFile("../../dataSets/symbolic.data");
     trainingData = initialiseDataSetFromFile("../../dataSets/ProbenBenchmarks/soybean/soybean1.txt");
 
     chromo = runCGP(params, trainingData, numGens);
@@ -444,7 +498,9 @@ int main(void) {
 
     freeDataSet(trainingData);
     freeChromosome(chromo);
-    freeParameters(params);
+    freeParameters(params);*/
+
+    learn_features(2, 2);
 
     return 0;
 }
