@@ -2396,9 +2396,9 @@ DLL_EXPORT struct dataSet *initialiseDataSetFromArrays(int numInputs, int numOut
 		data->outputData[i] = (double*)malloc(data->numOutputs * sizeof(double));
 
 		for (j = 0; j < data->numInputs; j++) {
+//            double tmp = inputs[(i * data->numInputs) + j];
 			data->inputData[i][j] = inputs[(i * data->numInputs) + j];
 		}
-
 		for (j = 0; j < data->numOutputs; j++) {
 			data->outputData[i][j] = outputs[(i * data->numOutputs) + j];
 		}

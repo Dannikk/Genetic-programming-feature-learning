@@ -6,12 +6,17 @@ project(GPFL)
 add_definitions(-DNO_DLL)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c99 -fopenmp")
 
+find_package(OpenMP)
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 add_executable(GPFL main.cpp cgp.c)
 
-target_link_libraries( GPFL ${OpenCV_LIBS} )
+target_link_libraries( GPFL ${OpenCV_LIBS} OpenMP::OpenMP_CXX)
+
+#if(OpenMP_CXX_FOUND)
+#    target_link_libraries(GPFL PUBLIC OpenMP::OpenMP_CXX)
+#endif()
 
 #message(${OpenCV_INCLUDE_DIRS})
 #message(${OpenCV_LIBS})
