@@ -1681,6 +1681,7 @@ DLL_EXPORT int getNumDataSetOutputs(struct dataSet *data);
 DLL_EXPORT int getNumDataSetSamples(struct dataSet *data);
 
 
+// edited by DNA
 /*
 	Function: getDataSetSampleInputs
 		Gets the <dataSet> inputs for the given sample index.
@@ -1695,7 +1696,7 @@ DLL_EXPORT int getNumDataSetSamples(struct dataSet *data);
 	See Also:
 		<getDataSetSampleInput>, <getDataSetSampleOutputs>, <getDataSetSampleOutput>
 */
-DLL_EXPORT double *getDataSetSampleInputs(struct dataSet *data, int sample);
+DLL_EXPORT double *getDataSetSampleInputs(const struct dataSet *data, int sample);
 
 
 /*

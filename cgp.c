@@ -2431,7 +2431,6 @@ DLL_EXPORT struct dataSet *initialiseDataSetFromArrays(int numInputs, int numOut
 		data->outputData[i] = (double*)malloc(data->numOutputs * sizeof(double));
 
 		for (j = 0; j < data->numInputs; j++) {
-//            double tmp = inputs[(i * data->numInputs) + j];
 			data->inputData[i][j] = inputs[(i * data->numInputs) + j];
 		}
 		for (j = 0; j < data->numOutputs; j++) {
@@ -2637,11 +2636,11 @@ DLL_EXPORT int getNumDataSetSamples(struct dataSet *data) {
 	return data->numSamples;
 }
 
-
+// edited by DNA
 /*
 	returns the inputs of the given sample of the given dataSet
 */
-DLL_EXPORT double *getDataSetSampleInputs(struct dataSet *data, int sample) {
+DLL_EXPORT double *getDataSetSampleInputs(const struct dataSet *data, int sample) {
 	return data->inputData[sample];
 }
 
