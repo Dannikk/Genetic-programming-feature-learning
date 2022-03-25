@@ -71,6 +71,8 @@ struct parameters {
     // DNA: num of images and resolution
     int numImages;
     int resolution;
+    int width;
+    int height;
 };
 
 
@@ -93,6 +95,7 @@ struct chromosome {
     // DNA: ls coefficients
     double* a;
     double* b;
+    int numImages;
 };
 
 
@@ -343,9 +346,34 @@ DLL_EXPORT int getImageResolution(const struct parameters* params) {
 
 // added by: DNA
 
-DLL_EXPORT void setImageResolution(struct parameters* params, const int res) {
+DLL_EXPORT void setImageResolution(struct parameters* params, int res) {
     params->resolution = res;
 }
+
+// added by: DNA
+
+DLL_EXPORT int getWidth(const struct parameters* params) {
+    return params->width;
+}
+
+// added by: DNA
+
+DLL_EXPORT void setWidth(struct parameters* params, int w) {
+    params->width = w;
+}
+
+// added by: DNA
+
+DLL_EXPORT int getHeight(const struct parameters* params) {
+    return params->height;
+}
+
+// added by: DNA
+
+DLL_EXPORT void setHeight(struct parameters* params, int h) {
+    params->height = h;
+}
+
 
 
 /*
@@ -898,6 +926,7 @@ DLL_EXPORT struct chromosome *initialiseChromosome(struct parameters *params) {
 
     chromo->a = (double*)malloc(sizeof(double)*getNumImages(params));
     chromo->b = (double*)malloc(sizeof(double)*getNumImages(params));
+    chromo->numImages = getNumImages(params);
 
     //
 
@@ -1087,6 +1116,9 @@ DLL_EXPORT struct chromosome *initialiseChromosomeFromChromosome(struct chromoso
     // added by: DNA
 
     printf("initialiseChromosomeFromChromosome");
+	/*chromoNew->a = (double*)malloc(sizeof(double)*getNumImages(params));
+	chromoNew->b = (double*)malloc(sizeof(double)*getNumImages(params));*/
+
     chromoNew->a = chromo->a;
     chromoNew->b = chromo->b;
 
@@ -1119,7 +1151,6 @@ DLL_EXPORT void freeChromosome(struct chromosome *chromo) {
 	free(chromo->nodes);
 	free(chromo->outputNodes);
 	free(chromo->activeNodes);
-	free(chromo);
 
     // added by: DNA
 
@@ -1127,6 +1158,9 @@ DLL_EXPORT void freeChromosome(struct chromosome *chromo) {
     free(chromo->b);
 
     //
+
+	free(chromo);
+
 }
 
 
@@ -1299,13 +1333,13 @@ DLL_EXPORT double getB(struct chromosome *chromo, int i) {
 
 // added by: DNA
 
-DLL_EXPORT void setA(struct chromosome *chromo, int i, const double a) {
+DLL_EXPORT void setA(struct chromosome *chromo, int i, double a) {
     chromo->a[i] = a;
 }
 
 // added by: DNA
 
-DLL_EXPORT void setB(struct chromosome *chromo, int i, const double b) {
+DLL_EXPORT void setB(struct chromosome *chromo, int i, double b) {
     chromo->b[i] = b;
 }
 
@@ -1873,10 +1907,6 @@ DLL_EXPORT int compareChromosomesANN(struct chromosome *chromoA, struct chromoso
 }
 
 
-
-
-
-
 DLL_EXPORT int compareChromosomesActiveNodes(struct chromosome *chromoA, struct chromosome *chromoB) {
 
 	int i, j;
@@ -2187,9 +2217,14 @@ DLL_EXPORT void copyChromosome(struct chromosome *chromoDest, struct chromosome 
 	chromoDest->generation = chromoSrc->generation;
 
     // added by: DNA
+    chromoDest->numImages = chromoSrc->numImages;
+    chromoDest->a = (double*)malloc(sizeof(double)*chromoSrc->numImages);
+    chromoDest->b = (double*)malloc(sizeof(double)*chromoSrc->numImages);
 
-    chromoDest->a = chromoSrc->a;
-    chromoDest->b = chromoSrc->b;
+    for (i=0; i<chromoSrc->numImages; i++) {
+        chromoDest->a[i] = chromoSrc->a[i];
+        chromoDest->b[i] = chromoSrc->b[i];
+    }
 
     //
 }

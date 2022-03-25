@@ -82,35 +82,15 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
             // mean calculation
             meanImage += getDataSetSampleOutput(data,i*numRes + p,0) / numRes;
             meanPred += imagePred[p] / numRes;
-            // MSE calculation for one image
-//            imageError += pow(getDataSetSampleOutput(data,i*numImages + p,0) - imagePred[p], 2);
         }
-//        cout << "______ for " << i << " image" << endl;
-//        for (int t=0; t < 10; t++){
-//            for (int tt = 0; tt < 2; tt++){
-//                cout << getDataSetSampleInputs(data, i*numRes + t)[tt] << "; ";
-//            }
-//            cout << endl;
-//        }
-
-
-/*        // MSE calculation for one image
-        imageError = 0;
-        for (p=0; p<numRes; p++) {
-            imageError += pow(getDataSetSampleOutput(data,i*numImages + p,0) - imagePred[p], 2);
-        }
-
-        // ls coefs calculation
-
-        // mean calculation
-        meanImage = 0;
-        meanPred = 0;
-        for (p=0; p<numRes; p++){
-            meanImage += getDataSetSampleOutput(data,i*numImages + p,0);
-            meanPred += imagePred[p];
+/*        cout << "______ for " << i << " image" << endl;
+        for (int t=0; t < 10; t++){
+            for (int tt = 0; tt < 2; tt++){
+                cout << getDataSetSampleInputs(data, i*numRes + t)[tt] << "; ";
+            }
+            cout << endl;
         }*/
-//        meanImage /= numRes;
-//        meanPred /= numRes;
+
 
         // calculation of variance of predicted image and correlation
         variancePred = 0;
@@ -150,8 +130,8 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
 struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width, int height, bool logging){
     vector<string> imageDirs = vector<string>();
 
-    string source = R"(C:\Users\nikit\CLionProjects\opencv_test\images\)";
-    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\opencv_test\images\*)");
+    string source = R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)";
+    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\*)");
 
     int numRes = width * height;
 
@@ -168,6 +148,7 @@ struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width,
 
     if (hf!=INVALID_HANDLE_VALUE){
         do{
+            cout << "\t\t" << "FindFileData.cFileName: " << FindFileData.cFileName << endl;
             if (strcmp(FindFileData.cFileName, ".") != 0 &&
                 strcmp(FindFileData.cFileName, "..") != 0)  {
                 imageDirs.emplace_back(source + FindFileData.cFileName);
@@ -182,9 +163,6 @@ struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width,
         for(const string& dir: imageDirs)
             cout << "\t" << dir << endl;
     }
-
-//    int width = 2048;
-//    int height = 2048;
 
     if (numImages > int(imageDirs.size())) {
         cout << "Warning!\n"
@@ -205,12 +183,15 @@ struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width,
         uchar *arr = image.isContinuous() ? image.data : image.clone().data;
 
         for (int k = 0; k < numRes; k++) {
-            inputs[i * numRes + 2 * k] = double(k / width);
-            inputs[i * numRes + 2 * k + 1] = double(k % width);
+            inputs[2*i * numRes + 2 * k] = double(k / width);
+            inputs[2*i * numRes + 2 * k + 1] = double(k % width);
 
-            if (k >=0 && k < 10){
-                cout << i * numRes + 2*k << ": " << inputs[i * numRes + 2*k] << "; " << i * numRes + 2*k + 1 << ": " << inputs[i * numRes + 2*k + 1] << endl;
-            }
+            /*if (logging) {
+                if (k >= 0 && k < 10) {
+                    cout << 2 * i * numRes + 2 * k << ": " << inputs[2 * i * numRes + 2 * k] << "; "
+                         << 2 * i * numRes + 2 * k + 1 << ": " << inputs[2 * i * numRes + 2 * k + 1] << endl;
+                }
+            }*/
 //            cout << i * numRes + k << ": " << inputs[i * numRes + k] << "; " << i * numRes + k + 1 << ": " << inputs[i * numRes + k + 1] << endl;
             outputs[i * numRes + k] = double(arr[k]) / 255.0;
         }
@@ -259,7 +240,7 @@ struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width,
     /*delete[] testArr;
     delete[] tarr;*/
 
-    for (int i=0; i < numImages; i++){
+    /*for (int i=0; i < numImages; i++){
         cout << "______ for " << i << " image" << endl;
         for (int t=0; t < 10; t++){
             for (int tt = 0; tt < 2; tt++){
@@ -267,13 +248,15 @@ struct dataSet* loadDataSetFromImages(char* sourseDir, int numImages, int width,
             }
             cout << endl;
         }
-    }
+    }*/
 
     return dataSet2return;
 }
 
-void save_pictures(struct dataSet* data, struct chromosome* chromo, const struct parameters* params,
-                    const int width, const int height, const vector<string> imageNames) {
+void save_pictures(struct dataSet* data, vector<struct chromosome*> chromos, const struct parameters* params) {
+    int width = getWidth(params);
+    int height = getHeight(params);
+
     double* imageArray = new double[width*height];
     double res, Sum=0;
     string name;
@@ -281,31 +264,76 @@ void save_pictures(struct dataSet* data, struct chromosome* chromo, const struct
     int numImages = getNumImages(params);
 
     for (int i = 0; i < numImages; i++){
+        Sum = 0;
         for (int p=0; p < numRes; p++) {
-
-            executeChromosome(chromo, getDataSetSampleInputs(data, i*numRes + p));
-            res = getChromosomeOutput(chromo,0);
-            Sum += res;
-            imageArray[p] = getA(chromo, i) + getB(chromo, i)*res;
-//            imageArray[p] = getChromosomeOutput(chromo,0);
-
+            double pixel = 0;
+            for (auto chrm: chromos) {
+                executeChromosome(chrm, getDataSetSampleInputs(data, i * numRes + p));
+                res = getChromosomeOutput(chrm, 0);
+                pixel += getA(chrm, i) + getB(chrm, i) * res;
+            }
+            imageArray[p] = pixel;
+            Sum += pixel;
         }
-        cout << "Mean of " << i << " image: " << Sum / numRes;
+        cout << "A: " << getA(chromos[0], i) << " B: " << getB(chromos[0], i) << endl;
+        cout << "Mean of (predicted) " << i << " image: " << Sum / numRes << endl;
         cv::Mat greyImg = cv::Mat(height, width, CV_64F, imageArray);
         greyImg *= 255.0;
         name = to_string(i) + "_.png";
         imwrite(name, greyImg);
+
+        std::string greyArrWindow = "Grey Array Image";
+        cv::namedWindow(greyArrWindow, cv::WINDOW_NORMAL);
+        cv::imshow(greyArrWindow, greyImg / 255);
+        waitKey(0);
     }
 
     delete[] imageArray;
 }
 
+struct dataSet* updateDataSet(dataSet* oldDataSet, chromosome* chromo, parameters* params, bool logging = false){
+    int numImages = getNumImages(params);
+    int numRes = getImageResolution(params);
+    int width = getWidth(params);
+    struct dataSet* dataSet2return;
 
-int learn_features(const int dimension, const int ext_iter, const bool logging = false) {
-    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\opencv_test\images\)");
-    const int numImages = 4;
-    const int width = 2048;
-    const int height = 2048;
+    double* outputs = new double[numImages * numRes];
+    double* inputs = new double[2 * numImages * numRes];
+
+    for (int i = 0; i < numImages; i++) {
+        double a = getA(chromo, i);
+        double b = getB(chromo, i);
+
+        for (int p = 0; p < numRes; p++) {
+            inputs[2*i * numRes + 2 * p] = double(p / width);
+            inputs[2*i * numRes + 2 * p + 1] = double(p % width);
+
+            /*if (logging) {
+                if (k >= 0 && k < 10) {
+                    cout << 2 * i * numRes + 2 * k << ": " << inputs[2 * i * numRes + 2 * k] << "; "
+                         << 2 * i * numRes + 2 * k + 1 << ": " << inputs[2 * i * numRes + 2 * k + 1] << endl;
+                }
+            }*/
+//            cout << i * numRes + k << ": " << inputs[i * numRes + k] << "; " << i * numRes + k + 1 << ": " << inputs[i * numRes + k + 1] << endl;
+            executeChromosome(chromo, getDataSetSampleInputs(oldDataSet, i*numRes + p));
+            outputs[i * numRes + p] = getDataSetSampleOutput(oldDataSet, i*numRes + p,0)
+                    - (a + b*getChromosomeOutput(chromo,0));
+        }
+    }
+    freeDataSet(oldDataSet);
+    dataSet2return = initialiseDataSetFromArrays(2, 1, numImages * numRes, inputs, outputs);
+
+    delete[] inputs;
+    delete[] outputs;
+
+    return dataSet2return;
+}
+
+int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
+    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)");
+    const int numImages = 3;
+    const int width = 512;
+    const int height = 512;
 
     struct parameters* params = nullptr;
     struct dataSet* trainingData = NULL;
@@ -318,13 +346,13 @@ int learn_features(const int dimension, const int ext_iter, const bool logging =
     int numOutputs = 1;
     int nodeArity = 2;
 
-    int numThreads = 1;
-    int numGens = 200;
-    double targetFitness = 0.1;
+    int numThreads = 4;
+    int numGens = max_int_iter;
+    double targetFitness = 0.01;
     int updateFrequency = 5;
 
     time_t timeStart, timeEnd;
-    double singleThreadTime, multipleThreadTime;
+    double runningTime;
 
     params = initialiseParameters(numInputs, numNodes, numOutputs, nodeArity);
     addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,sig,tanh");
@@ -339,6 +367,8 @@ int learn_features(const int dimension, const int ext_iter, const bool logging =
 //    important detail for GPFL
     setNumImages(params, numImages);
     setImageResolution(params, width*height);
+    setWidth(params, width);
+    setHeight(params, height);
 
     if (logging)
         cout << "- Dataset loading from images starts:" << endl;
@@ -352,14 +382,15 @@ int learn_features(const int dimension, const int ext_iter, const bool logging =
         timeStart = time(NULL);
         new_chromo = runCGP(params, trainingData, numGens);
         timeEnd = time(NULL);
-        multipleThreadTime = difftime(timeEnd, timeStart);
-        cout << "Time: " << multipleThreadTime << endl;
+        runningTime = difftime(timeEnd, timeStart);
+        if (logging)
+            cout << "Time: " << runningTime << endl;
 
         chromos.push_back(new_chromo);
         if (logging)
             cout << "Chromosome was added" << endl;
-        save_pictures(trainingData, new_chromo, params, width, height, vector<string>());
-
+        save_pictures(trainingData, chromos, params);
+        trainingData = updateDataSet(trainingData, new_chromo, params);
     }
 
 
@@ -605,7 +636,7 @@ int main(void) {
     freeParameters(params);*/
 
 
-    learn_features(2, 2, true);
+    learn_features(20, 7, true);
 
     return 0;
 }
