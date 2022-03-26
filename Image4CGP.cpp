@@ -6,18 +6,20 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
-#include <Windows.h>
+//#include <Windows.h>
+#include <filesystem>
 //#include <char.h>
 
 using namespace std;
 using namespace cv;
+namespace fs = std::filesystem;
 
 
-struct dataSet* loadDataSetFromImages(char* sourceDir, int numImages, int width, int height, bool logging){
+struct dataSet* loadDataSetFromImages(const string& sourcePath, int numImages, int width, int height, bool logging){
     vector<string> imageDirs = vector<string>();
 
-    string source = R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)";
-    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\*)");
+    /*string source = R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)";
+    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\*)");*/
 
     int numRes = width * height;
 
@@ -27,10 +29,16 @@ struct dataSet* loadDataSetFromImages(char* sourceDir, int numImages, int width,
 
     Mat image;
 
-    WIN32_FIND_DATA FindFileData;
-    HANDLE hf;
+    /*WIN32_FIND_DATA FindFileData;
+    HANDLE hf;*/
 
-    hf=FindFirstFile(src2find, &FindFileData);
+    for (const auto & entry: fs::directory_iterator(sourcePath)) {
+//        cout << "______" << entry.path().string() << endl;
+        imageDirs.emplace_back(entry.path().string());
+    }
+
+
+/*    hf=FindFirstFile(src2find, &FindFileData);
 
     if (hf!=INVALID_HANDLE_VALUE){
         do{
@@ -42,7 +50,7 @@ struct dataSet* loadDataSetFromImages(char* sourceDir, int numImages, int width,
         }
         while (FindNextFile(hf,&FindFileData)!=0);
         FindClose(hf);
-    }
+    }*/
 
     if (logging){
         cout << "Images were found:" << endl;

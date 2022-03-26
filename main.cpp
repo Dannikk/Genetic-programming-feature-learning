@@ -157,13 +157,13 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
     int height = getHeight(params);
 
     auto* imageArray = new double[width*height];
-    double res, Sum;
+    double res;
     string name;
     int numRes = getImageResolution(params);
     int numImages = getNumImages(params);
 
     for (int i = 0; i < numImages; i++){
-        Sum = 0;
+        //Sum = 0;
         for (int p=0; p < numRes; p++) {
             double pixel = 0;
             for (auto chrm: chromos) {
@@ -172,7 +172,7 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
                 pixel += getA(chrm, i) + getB(chrm, i) * res;
             }
             imageArray[p] = pixel;
-            Sum += pixel;
+            //Sum += pixel;
         }
 //        cout << "A: " << getA(chromos[0], i) << " B: " << getB(chromos[0], i) << endl;
 //        cout << "Mean of (predicted) " << i << " image: " << Sum / numRes << endl;
@@ -194,7 +194,8 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
 
 
 int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
-    char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)");
+    //char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)");
+    string path2srcimages = string("../images2gpfl");
     const int numImages = 3;
     const int width = 512;
     const int height = 512;
@@ -209,7 +210,7 @@ int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
     int numOutputs = 1;
     int nodeArity = 2;
 
-    int numThreads = 8;
+    int numThreads = 4;
     int numGens = max_int_iter;
     double targetFitness = 0.01;
     int updateFrequency = 20;
@@ -233,10 +234,12 @@ int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
     setWidth(params, width);
     setHeight(params, height);
 
+    cout << "Number of threads: " << numThreads << endl;
+
     if (logging)
         cout << "- Dataset loading from images starts:" << endl;
 
-    trainingData = loadDataSetFromImages(src2find, numImages, width, height, true);
+    trainingData = loadDataSetFromImages(path2srcimages, numImages, width, height, true);
 
     if (logging)
         cout << "- Dataset loading from images completed!" << endl;
