@@ -210,7 +210,7 @@ int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
     int numOutputs = 1;
     int nodeArity = 2;
 
-    int numThreads = 4;
+    int numThreads = 8;
     int numGens = max_int_iter;
     double targetFitness = 0.01;
     int updateFrequency = 20;
@@ -257,7 +257,7 @@ int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
         //save_pictures(trainingData, chromos, params);
         trainingData = updateDataSet(trainingData, new_chromo, params);
     }
-    save_pictures(trainingData, chromos, params, true);
+    save_pictures(trainingData, chromos, params, false);
 
 
     freeDataSet(trainingData);
@@ -268,10 +268,22 @@ int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
 
 
 int main() {
+    int ext_iter, int_iter;
+    ext_iter = 200;
+    int_iter = 51;
 
-    cout << "Hello" << endl;
+    cout << "Number of external iterations: " << ext_iter << endl;
+    cout << "Number of internal iteratons: " << int_iter <<  endl;
+    
+    time_t start_time, end_time;
 
-    learn_features(41, 150, true);
+    start_time = time(nullptr);
+
+    learn_features(int_iter, ext_iter, true);
+
+    end_time = time(nullptr);
+
+    cout << "Total time: " << difftime(end_time, start_time) << endl;    
 
     return 0;
 }
