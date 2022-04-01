@@ -171,7 +171,7 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
 }
 
 void save_pictures(const struct dataSet* data, const vector<struct chromosome*>& chromos, const struct parameters* params,
-        bool show_new_pictures = false) {
+        vector<string> file_names, bool show_new_pictures = false) {
 
     int width = getWidth(params);
     int height = getHeight(params);
@@ -198,7 +198,7 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
 //        cout << "Mean of (predicted) " << i << " image: " << Sum / numRes << endl;
         cv::Mat greyImg = cv::Mat(height, width, CV_64F, imageArray);
         greyImg *= 255.0;
-        name = "../Result/" + to_string(i) + "_.png";
+        name = "../Result/" + file_names[i] + ".png";
         imwrite(name, greyImg);
 
         if (show_new_pictures) {
@@ -221,16 +221,17 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
     struct dataSet* trainingData;
     vector<struct chromosome*> chromos;
     struct chromosome* new_chromo;
+    vector<string> file_names;
 
     int numInputs = 2;
     int numNodes = 300;
     int numOutputs = 1;
     int nodeArity = 2;
 
-    int numThreads = 8;
+    int numThreads = 12;
     int numGens = max_int_iter;
-    double targetFitness = 0.0001;
-    int updateFrequency = 0;
+    double targetFitness = 0.000001;
+    int updateFrequency = 200;
 
 //    time_t timeStart, timeRunning, timeEnd;
     unsigned int timeStart, timeRunning, timeEnd;
@@ -239,8 +240,8 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
 
     params = initialiseParameters(numInputs, numNodes, numOutputs, nodeArity);
     //addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,sig,tanh");
-    addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,0,sq,sqrt,step,sig,tanh");
-
+    //addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,0,sq,sqrt,step,sig,tanh");
+    addNodeFunction(params, "add,sub,mul,div,sig,1,min,max,not,xor,and,or,wire,step");
 
     //    important detail for GPFL
     setCustomFitnessFunction(params, partialModelError, "partialModelError");
@@ -260,7 +261,7 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
     if (logging)
         cout << "- Dataset loading from images starts:" << endl;
 
-    trainingData = loadDataSetFromImages(path2srcimages, numImages, width, height, true);
+    trainingData = loadDataSetFromImages(path2srcimages, file_names, numImages, width, height, true);
     if (trainingData == nullptr){
         return 1;
     }
@@ -297,7 +298,7 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
         cout << meanRunningTime / ext_iter << "\t" << meanUpdatingTime / ext_iter << endl;
     }
     timeStart = clock();
-    save_pictures(trainingData, chromos, params, false);
+    save_pictures(trainingData, chromos, params, file_names, false);
     timeEnd = clock();
     cout << "Saving time: " << double(timeEnd - timeStart) / 1000 << endl;
 
@@ -309,7 +310,7 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
 
 
 int main() {
-    const int ext_iter = 1000;
+    const int ext_iter = 5;
     const int int_iter = 200;
     const int width = 256;
     const int height = 256;
