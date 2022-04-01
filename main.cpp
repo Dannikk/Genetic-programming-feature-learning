@@ -22,7 +22,7 @@
 //#include <char.h>
 //#include <string>
 //#include <math>
-//#include <ctime>
+#include <ctime>
 #include "cgp.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
@@ -39,10 +39,15 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
     double imageError;
 
     double meanImage;
-    double meanPred;
+    double meanPred = 0;
+
+    double meanImage2;
+    double meanPred2 = 0;
+    double meanImagePred; // the value Image*Prediction
+    double varianceImage;
 
     double variancePred = 0;
-    double correlation;
+    double covariance;
 
     double a, b;
 
@@ -71,40 +76,55 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
         exit(0);
     }
 
-    meanPred = 0;
     //TODO: compare this
     for (p=0; p<numRes; p++) {
         executeChromosome(chromo, getDataSetSampleInputs(data, p));
-        imagePred[p] = getChromosomeOutput(chromo,0);
+        //imagePred[p] = getChromosomeOutput(chromo,0);
+        double pixel = getChromosomeOutput(chromo,0);
+        imagePred[p] = pixel;
 
         // mean calculation
-        meanPred += imagePred[p] / numRes;
+        //meanPred += imagePred[p] / numRes;
+        meanPred += pixel;
+        meanPred2 += pixel * pixel;
     }
+    meanPred /= numRes;
+    meanPred2 /= numRes;
+    variancePred = meanPred2 - meanPred * meanPred;
     // and embedded mean function
     // ...
 
-    // and also predict variance and embedded variance function
+    /*// and also predict variance and embedded variance function
     for (p=0; p<numRes; p++){
         double diff = imagePred[p] - meanPred;
         variancePred += diff * diff / numRes;
-    }
+    }*/
 
     for (i=0; i<numImages; i++) {
         meanImage = 0;
         imageError = 0;
+        meanImage2 = 0;
+        meanImagePred = 0;
 
         //TODO: compare this
         for (p=0; p<numRes; p++) {
-            meanImage += getDataSetSampleOutput(data, i*numRes + p, 0) / numRes;
+            double pixel = getDataSetSampleOutput(data, i*numRes + p, 0);
+            meanImage += pixel;
+            meanImage2 += pixel * pixel;
+            meanImagePred += pixel * imagePred[p];
         }
+        meanImage /= numRes;
+        meanImage2 /= numRes;
+        varianceImage /= meanImage2 - meanImage * meanImage;
+        covariance = (meanImagePred - numRes * meanImage * meanPred) / (numRes - 1); // /varianceImage/variancePred;
         // and embedded mean function
         // ...
 
-        // calculation of correlation
-        correlation = 0;
+        /*// calculation of covariance
+        covariance = 0;
         for (p=0; p<numRes; p++) {
-            correlation +=  (imagePred[p] - meanPred) * (getDataSetSampleOutput(data,i*numRes + p,0) - meanImage) / numRes;
-        }
+            covariance +=  (imagePred[p] - meanPred) * (getDataSetSampleOutput(data,i*numRes + p,0) - meanImage) / numRes;
+        }*/
 
         if (!isfinite(variancePred)){
 //            cout << "Oops!: " << variancePred << endl;
@@ -122,7 +142,7 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
             continue;
         }
         // save A and B coefficients (linear scaling)
-        b = correlation / variancePred;
+        b = covariance / variancePred;
         a = meanImage - b*meanPred;
         setA(chromo, i, a);
         setB(chromo, i, b);
@@ -178,7 +198,7 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
 //        cout << "Mean of (predicted) " << i << " image: " << Sum / numRes << endl;
         cv::Mat greyImg = cv::Mat(height, width, CV_64F, imageArray);
         greyImg *= 255.0;
-        name = to_string(i) + "_.png";
+        name = "../Result/" + to_string(i) + "_.png";
         imwrite(name, greyImg);
 
         if (show_new_pictures) {
@@ -193,12 +213,9 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
 }
 
 
-int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
+int learn_features(int max_int_iter, int ext_iter, const int width, const int height,
+                   const int numImages, const string& path2srcimages, bool logging = false) {
     //char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)");
-    string path2srcimages = string("../images2gpfl");
-    const int numImages = 3;
-    const int width = 512;
-    const int height = 512;
 
     struct parameters* params;
     struct dataSet* trainingData;
@@ -206,20 +223,24 @@ int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
     struct chromosome* new_chromo;
 
     int numInputs = 2;
-    int numNodes = 100;
+    int numNodes = 300;
     int numOutputs = 1;
     int nodeArity = 2;
 
     int numThreads = 8;
     int numGens = max_int_iter;
-    double targetFitness = 0.01;
-    int updateFrequency = 20;
+    double targetFitness = 0.0001;
+    int updateFrequency = 0;
 
-    time_t timeStart, timeEnd;
-    double runningTime;
+//    time_t timeStart, timeRunning, timeEnd;
+    unsigned int timeStart, timeRunning, timeEnd;
+    double runningTime, updatingTime;
+    double meanRunningTime = 0, meanUpdatingTime = 0;
 
     params = initialiseParameters(numInputs, numNodes, numOutputs, nodeArity);
-    addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,sig,tanh");
+    //addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,sig,tanh");
+    addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,0,sq,sqrt,step,sig,tanh");
+
 
     //    important detail for GPFL
     setCustomFitnessFunction(params, partialModelError, "partialModelError");
@@ -240,25 +261,45 @@ int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
         cout << "- Dataset loading from images starts:" << endl;
 
     trainingData = loadDataSetFromImages(path2srcimages, numImages, width, height, true);
+    if (trainingData == nullptr){
+        return 1;
+    }
 
     if (logging)
         cout << "- Dataset loading from images completed!" << endl;
 
     for (int m = 0; m < ext_iter; m++) {
         cout << "\nIteration " << m << endl;
-        timeStart = time(nullptr);
+//        timeStart = time(nullptr);
+        timeStart = clock();
         new_chromo = runCGP(params, trainingData, numGens);
-        timeEnd = time(nullptr);
-        runningTime = difftime(timeEnd, timeStart);
-        if (logging)
-            cout << "Time: " << runningTime << endl;
+//        timeRunning = time(nullptr);
+        timeRunning = clock();
+        //runningTime = difftime(timeRunning, timeStart);
+        runningTime = double(timeRunning - timeStart) / 1000;
+        meanRunningTime += runningTime;
 
         chromos.push_back(new_chromo);
         //save_pictures(trainingData, chromos, params);
         trainingData = updateDataSet(trainingData, new_chromo, params);
+//        timeEnd = time(nullptr);
+        timeEnd = clock();
+        //updatingTime = difftime(timeEnd, timeRunning);
+        updatingTime = double(timeEnd - timeRunning) / 1000;
+        meanUpdatingTime += updatingTime;
+//        if (logging)
+//            cout << "Time: " << runningTime << "; " << updatingTime << endl;
     }
-    save_pictures(trainingData, chromos, params, false);
 
+    if (logging){
+        cout << "Mean time:" << endl;
+        cout << "Running\tUpdating" << endl;
+        cout << meanRunningTime / ext_iter << "\t" << meanUpdatingTime / ext_iter << endl;
+    }
+    timeStart = clock();
+    save_pictures(trainingData, chromos, params, false);
+    timeEnd = clock();
+    cout << "Saving time: " << double(timeEnd - timeStart) / 1000 << endl;
 
     freeDataSet(trainingData);
     // TODO: create a chromosome clearing method
@@ -268,18 +309,25 @@ int learn_features(int max_int_iter, int ext_iter, bool logging = false) {
 
 
 int main() {
-    int ext_iter, int_iter;
-    ext_iter = 200;
-    int_iter = 51;
+    const int ext_iter = 1000;
+    const int int_iter = 200;
+    const int width = 256;
+    const int height = 256;
+    const int numImages = 5;
+    int error;
+    string path2srcimages = string("../images2gpfl_256");
 
     cout << "Number of external iterations: " << ext_iter << endl;
     cout << "Number of internal iteratons: " << int_iter <<  endl;
-    
+
     time_t start_time, end_time;
 
     start_time = time(nullptr);
 
-    learn_features(int_iter, ext_iter, true);
+    error = learn_features(int_iter, ext_iter, width, height, numImages, path2srcimages, true);
+    if (error!=0){
+        cout << "An error has occurred!" << endl;
+    }
 
     end_time = time(nullptr);
 

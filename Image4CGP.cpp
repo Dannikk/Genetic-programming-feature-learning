@@ -63,6 +63,10 @@ struct dataSet* loadDataSetFromImages(const string& sourcePath, int numImages, i
                 "\tExpected number of images is " << numImages << ", but real number of images is " <<
              int(imageDirs.size()) << "\n";
         numImages = int(imageDirs.size());
+        if (numImages == 0) {
+            cout << "Images not found!" << endl;
+            return nullptr;
+        }
     }
 
     outputs = new double[numImages * numRes];
