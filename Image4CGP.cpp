@@ -15,7 +15,7 @@ using namespace cv;
 namespace fs = std::filesystem;
 
 
-struct dataSet* loadDataSetFromImages(const string& sourcePath, vector<string> file_names, int numImages, int width, int height, bool logging){
+struct dataSet* loadDataSetFromImages(const string& sourcePath, vector<string>& file_names, int numImages, int width, int height, bool logging){
     vector<string> imageDirs = vector<string>();
 
     /*string source = R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)";
@@ -35,7 +35,7 @@ struct dataSet* loadDataSetFromImages(const string& sourcePath, vector<string> f
     for (const auto & entry: fs::directory_iterator(sourcePath)) {
 //        cout << "______" << entry.path().string() << endl;
         imageDirs.emplace_back(entry.path().string());
-	file_names.emplace_back(entry.path().stem().string());
+	    file_names.emplace_back(entry.path().stem().string());
     }
 
 

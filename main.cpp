@@ -231,7 +231,7 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
     int numThreads = 12;
     int numGens = max_int_iter;
     double targetFitness = 0.000001;
-    int updateFrequency = 200;
+    int updateFrequency = 1;
 
 //    time_t timeStart, timeRunning, timeEnd;
     unsigned int timeStart, timeRunning, timeEnd;
@@ -288,8 +288,8 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
         //updatingTime = difftime(timeEnd, timeRunning);
         updatingTime = double(timeEnd - timeRunning) / 1000;
         meanUpdatingTime += updatingTime;
-//        if (logging)
-//            cout << "Time: " << runningTime << "; " << updatingTime << endl;
+        if (logging)
+            cout << "Time: " << runningTime << "; " << updatingTime << endl;
     }
 
     if (logging){
@@ -310,8 +310,8 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
 
 
 int main() {
-    const int ext_iter = 5;
-    const int int_iter = 200;
+    const int ext_iter = 2;
+    const int int_iter = 20;
     const int width = 256;
     const int height = 256;
     const int numImages = 5;
