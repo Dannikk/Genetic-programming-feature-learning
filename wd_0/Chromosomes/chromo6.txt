@@ -1,0 +1,15 @@
+numInputs,2
+numNodes,3
+numOutputs,1
+arity,2
+functionSet,add,sub,mul,div,sig,1,wire,step,min,max
+0
+0,-0.412519
+0,0.531297
+8
+0,-0.289651
+2,-0.648122
+6
+3,-0.710746
+2,0.387860
+4,

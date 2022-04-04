@@ -1,0 +1,38 @@
+digraph NeuralNetwork {
+rankdir=LR;
+size="8,6";
+center = true;
+node0 [label="(0) Input", color=black, labelfontcolor=black, fontcolor=black];
+node1 [label="(1) Input", color=black, labelfontcolor=black, fontcolor=black];
+node2 [label="(2) mul", color=black, labelfontcolor=black, fontcolor=black];
+node0 -> node2 [label="-0.03", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node0 -> node2 [label="0.64", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node3 [label="(3) mul", color=black, labelfontcolor=black, fontcolor=black];
+node2 -> node3 [label="0.39", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node2 -> node3 [label="-0.36", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node4 [label="(4) mul", color=black, labelfontcolor=black, fontcolor=black];
+node2 -> node4 [label="-0.42", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node0 -> node4 [label="-0.29", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node5 [label="(5) min", color=black, labelfontcolor=black, fontcolor=black];
+node4 -> node5 [label="0.91", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node2 -> node5 [label="-0.51", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node6 [label="(6) add", color=black, labelfontcolor=black, fontcolor=black];
+node4 -> node6 [label="0.09", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node4 -> node6 [label="-0.17", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node7 [label="(7) min", color=black, labelfontcolor=black, fontcolor=black];
+node0 -> node7 [label="-0.49", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node1 -> node7 [label="-0.01", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node8 [label="(8) sub", color=black, labelfontcolor=black, fontcolor=black];
+node5 -> node8 [label="0.50", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node3 -> node8 [label="0.53", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node9 [label="(9) add", color=black, labelfontcolor=black, fontcolor=black];
+node6 -> node9 [label="0.06", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node8 -> node9 [label="-0.29", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node10 [label="(10) mul", color=black, labelfontcolor=black, fontcolor=black];
+node9 -> node10 [label="0.92", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node7 -> node10 [label="0.30", labelfontcolor=black, fontcolor=black, bold=true, color=black];
+node11 [label="Output 0", color=black, labelfontcolor=black, fontcolor=black];
+node10 -> node11 [labelfontcolor=black, fontcolor=black, bold=true, color=black];
+{ rank = source; "node0"; "node1"; }
+{ rank = max;"node11"; }
+}

@@ -1443,7 +1443,7 @@ DLL_EXPORT void saveChromosomeDot(struct chromosome *chromo, int weights, char c
 
 	/* landscape, square and centre */
 	fprintf(fp, "rankdir=LR;\n");
-	fprintf(fp, "size=\"4,3\";\n");
+	fprintf(fp, "size=\"8,6\";\n");
 	fprintf(fp, "center = true;\n");
 
 	/* for all the inputs */

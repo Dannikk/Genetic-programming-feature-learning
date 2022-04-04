@@ -10,7 +10,7 @@ find_package(OpenMP)
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
-add_executable(GPFL main.cpp cgp.c Image4CGP.cpp Image4CGP.h)
+add_executable(GPFL main.cpp cgp.c Image4CGP.cpp Image4CGP.h CustomNodeFunctions.cpp CustomNodeFunctions.h)
 
 target_link_libraries( GPFL ${OpenCV_LIBS} OpenMP::OpenMP_CXX)
 

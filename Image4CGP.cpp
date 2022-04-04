@@ -74,9 +74,9 @@ struct dataSet* loadDataSetFromImages(const string& sourcePath, vector<string>& 
     inputs = new double[2 * numImages * numRes];
 
     for (int i = 0; i < numImages; i++) {
-        if (logging){
+        /*if (logging){
             cout << "Reading: " << imageDirs[i] << " ..." << endl;
-        }
+        }*/
         image = imread(imageDirs[i], IMREAD_GRAYSCALE);
 
         uchar *arr = image.isContinuous() ? image.data : image.clone().data;
@@ -86,7 +86,6 @@ struct dataSet* loadDataSetFromImages(const string& sourcePath, vector<string>& 
             inputs[2*i * numRes + 2 * k + 1] = double(k % width);
             outputs[i * numRes + k] = double(arr[k]) / 255.0;
         }
-        cout << endl;
     }
 
     dataSet2return = initialiseDataSetFromArrays(2, 1, numImages * numRes, inputs, outputs);

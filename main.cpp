@@ -27,6 +27,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 #include "Image4CGP.h"
+#include "CustomNodeFunctions.h"
 
 using namespace cv;
 using namespace std;
@@ -171,7 +172,7 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
 }
 
 void save_pictures(const struct dataSet* data, const vector<struct chromosome*>& chromos, const struct parameters* params,
-        vector<string> file_names, bool show_new_pictures = false) {
+        vector<string> file_names, bool show_new_pictures = false, string prefix = string()) {
 
     int width = getWidth(params);
     int height = getHeight(params);
@@ -181,6 +182,10 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
     string name;
     int numRes = getImageResolution(params);
     int numImages = getNumImages(params);
+
+    if (!prefix.empty()) {
+        prefix += string("_");
+    }
 
     for (int i = 0; i < numImages; i++){
         //Sum = 0;
@@ -198,7 +203,8 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
 //        cout << "Mean of (predicted) " << i << " image: " << Sum / numRes << endl;
         cv::Mat greyImg = cv::Mat(height, width, CV_64F, imageArray);
         greyImg *= 255.0;
-        name = "../Result/" + file_names[i] + ".png";
+
+        name = string("Result/") + prefix + file_names[i] + ".png";
         imwrite(name, greyImg);
 
         if (show_new_pictures) {
@@ -213,8 +219,9 @@ void save_pictures(const struct dataSet* data, const vector<struct chromosome*>&
 }
 
 
-int learn_features(int max_int_iter, int ext_iter, const int width, const int height,
-                   const int numImages, const string& path2srcimages, bool logging = false) {
+int learn_features(char* func_set, int max_int_iter, int ext_iter, const int width, const int height,
+                   const int numImages, const string& path2srcimages, bool logging = false, int savingImageFreq = 0,
+                   bool saveCromosomes = true) {
     //char *src2find = strdup(R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)");
 
     struct parameters* params;
@@ -228,20 +235,23 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
     int numOutputs = 1;
     int nodeArity = 2;
 
-    int numThreads = 12;
+    int numThreads = 8;
     int numGens = max_int_iter;
     double targetFitness = 0.000001;
-    int updateFrequency = 1;
+    int updateFrequency = 200;
 
 //    time_t timeStart, timeRunning, timeEnd;
     unsigned int timeStart, timeRunning, timeEnd;
-    double runningTime, updatingTime;
+    double runningTime, updatingTime, savingTime;
     double meanRunningTime = 0, meanUpdatingTime = 0;
 
     params = initialiseParameters(numInputs, numNodes, numOutputs, nodeArity);
     //addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,sig,tanh");
     //addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,0,sq,sqrt,step,sig,tanh");
-    addNodeFunction(params, "add,sub,mul,div,sig,1,min,max,not,xor,and,or,wire,step");
+    //addNodeFunction(params, "add,sub,mul,div,sig,1,min,max,not,xor,and,or,wire,step");
+    addNodeFunction(params, func_set);
+    addCustomNodeFunction(params, min, "min", -1);
+    addCustomNodeFunction(params, max, "max", -1);
 
     //    important detail for GPFL
     setCustomFitnessFunction(params, partialModelError, "partialModelError");
@@ -250,57 +260,89 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
     setTargetFitness(params, targetFitness);
     setUpdateFrequency(params, updateFrequency);
 
-//    important detail for GPFL
+    //    important detail for GPFL
     setNumImages(params, numImages);
     setImageResolution(params, width*height);
     setWidth(params, width);
     setHeight(params, height);
-
+    printParameters(params);
     cout << "Number of threads: " << numThreads << endl;
 
     if (logging)
         cout << "- Dataset loading from images starts:" << endl;
 
     trainingData = loadDataSetFromImages(path2srcimages, file_names, numImages, width, height, true);
-    if (trainingData == nullptr){
+    if (trainingData == nullptr) {
         return 1;
     }
 
     if (logging)
         cout << "- Dataset loading from images completed!" << endl;
 
-    for (int m = 0; m < ext_iter; m++) {
-        cout << "\nIteration " << m << endl;
-//        timeStart = time(nullptr);
+    FILE *fp = fopen("coeffs.txt", "w");
+
+    for (int i=0; i < numImages; i++) {
+        fprintf(fp, "%s\t\t\t\t", file_names[i].c_str());
+    }
+    fprintf(fp, "\n");
+
+    string file_name;
+    char *fname;
+    for (int ei = 0; ei < ext_iter; ei++) {
+        cout << "\nIteration " << ei << endl;
         timeStart = clock();
         new_chromo = runCGP(params, trainingData, numGens);
-//        timeRunning = time(nullptr);
         timeRunning = clock();
-        //runningTime = difftime(timeRunning, timeStart);
-        runningTime = double(timeRunning - timeStart) / 1000;
+        runningTime = double(timeRunning - timeStart);
         meanRunningTime += runningTime;
 
-        chromos.push_back(new_chromo);
-        //save_pictures(trainingData, chromos, params);
         trainingData = updateDataSet(trainingData, new_chromo, params);
-//        timeEnd = time(nullptr);
+        removeInactiveNodes(new_chromo);
+        if (saveCromosomes) {
+            file_name = string("Chromosomes/") + "chromo" + to_string(ei+1) + ".txt";
+            fname = strcpy((char*)malloc(file_name.length()+1), file_name.c_str());
+            saveChromosome(new_chromo, fname);
+            delete [] fname;
+
+            for (int i=0; i < numImages; i++) {
+                fprintf(fp, "%.15f %.15f\t", getA(new_chromo, i), getB(new_chromo, i));
+            }
+            fprintf(fp, "\n");
+            file_name = string("Graphs/") + "graph" + to_string(ei+1) + ".dot";
+            fname = strcpy((char*)malloc(file_name.length()+1), file_name.c_str());
+            saveChromosomeDot(new_chromo, 1, fname);
+            delete [] fname;
+        }
         timeEnd = clock();
-        //updatingTime = difftime(timeEnd, timeRunning);
-        updatingTime = double(timeEnd - timeRunning) / 1000;
+        chromos.push_back(new_chromo);
+        updatingTime = double(timeEnd - timeRunning);
         meanUpdatingTime += updatingTime;
-        if (logging)
-            cout << "Time: " << runningTime << "; " << updatingTime << endl;
+
+        if (savingImageFreq != 0 && (ei + 1) % savingImageFreq == 0) {
+            timeStart = clock();
+            save_pictures(trainingData, chromos, params, file_names, false, to_string(ei+1));
+            timeEnd = clock();
+            savingTime += double(timeEnd - timeStart);
+        }
+/*        if (logging)
+            cout << "Time: " << runningTime << "; " << updatingTime << endl;*/
+    }
+    fclose(fp);
+
+    if (savingImageFreq == 0 || ext_iter % savingImageFreq != 0) {
+        cout << "Save final predicts" << endl;
+        timeStart = clock();
+        save_pictures(trainingData, chromos, params, file_names, false, to_string(ext_iter));
+        timeEnd = clock();
+        savingTime += double(timeEnd - timeStart);
     }
 
     if (logging){
         cout << "Mean time:" << endl;
-        cout << "Running\tUpdating" << endl;
-        cout << meanRunningTime / ext_iter << "\t" << meanUpdatingTime / ext_iter << endl;
+        cout << "\tRunning\tUpdating" << endl;
+        cout << "\t" << meanRunningTime / ext_iter / 1000 << "\t" << meanUpdatingTime / ext_iter / 1000 << endl;
     }
-    timeStart = clock();
-    save_pictures(trainingData, chromos, params, file_names, false);
-    timeEnd = clock();
-    cout << "Saving time: " << double(timeEnd - timeStart) / 1000 << endl;
+    cout << "Saving time: " << savingTime / 1000 << endl;
 
     freeDataSet(trainingData);
     // TODO: create a chromosome clearing method
@@ -310,29 +352,38 @@ int learn_features(int max_int_iter, int ext_iter, const int width, const int he
 
 
 int main() {
-    const int ext_iter = 2;
-    const int int_iter = 20;
+    char func_set[] = "add,sub,mul,div,pow,exp,sig,1,0,wire,sin,cos";
+    //char func_set[] = "add,sub,mul,div,sq,sqrt,tanh,1,0,wire,sin,cos";
+    const int ext_iter = 12;
+    const int int_iter = 10;
     const int width = 256;
     const int height = 256;
     const int numImages = 5;
+    const int savingImageFrequency = 5;
     int error;
     string path2srcimages = string("../images2gpfl_256");
 
     cout << "Number of external iterations: " << ext_iter << endl;
-    cout << "Number of internal iteratons: " << int_iter <<  endl;
+    cout << "Number of internal iterations: " << int_iter <<  endl;
+    cout << "Frequency of image saving: " << savingImageFrequency << endl;
 
     time_t start_time, end_time;
 
     start_time = time(nullptr);
 
-    error = learn_features(int_iter, ext_iter, width, height, numImages, path2srcimages, true);
-    if (error!=0){
+    error = learn_features(func_set, int_iter, ext_iter, width, height, numImages,
+                           path2srcimages, true, savingImageFrequency, true);
+    if (error!=0) {
         cout << "An error has occurred!" << endl;
     }
 
     end_time = time(nullptr);
 
-    cout << "Total time: " << difftime(end_time, start_time) << endl;    
+    int hours = 0, minutes = 0, seconds = 0;
+    int total = difftime(end_time, start_time);
+
+    cout << "Total time: " << total << " seconds" << endl;
+    cout << "\tor " << total / 3600 << " hours " << total % 3600 / 60 << " minutes " << total % 3600 << " seconds" << endl;
 
     return 0;
 }
