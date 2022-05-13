@@ -15,7 +15,8 @@ using namespace cv;
 namespace fs = std::filesystem;
 
 
-struct dataSet* loadDataSetFromImages(const string& sourcePath, vector<string>& file_names, int numImages, int width, int height, bool logging){
+struct dataSet* loadDataSetFromImages(const string& sourcePath, vector<string>& file_names,
+        int numImages, int width, int height, bool logging, bool transpose){
     vector<string> imageDirs = vector<string>();
 
     /*string source = R"(C:\Users\nikit\CLionProjects\GPFL\images2gpfl\)";
@@ -78,6 +79,15 @@ struct dataSet* loadDataSetFromImages(const string& sourcePath, vector<string>& 
             cout << "Reading: " << imageDirs[i] << " ..." << endl;
         }*/
         image = imread(imageDirs[i], IMREAD_GRAYSCALE);
+
+        if (transpose){
+            image = image.t();
+        }
+
+        /*std::string greyArrWindow = String("Image") + to_string(i);
+        cv::namedWindow(greyArrWindow, cv::WINDOW_NORMAL);
+        cv::imshow(greyArrWindow, image);
+        waitKey(0);*/
 
         uchar *arr = image.isContinuous() ? image.data : image.clone().data;
 

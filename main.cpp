@@ -27,7 +27,6 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 #include "Image4CGP.h"
-#include "CustomNodeFunctions.h"
 
 using namespace cv;
 using namespace std;
@@ -40,29 +39,27 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
     double imageError;
 
     double meanImage;
-    double meanPred = 0;
+    double meanPred;
 
     double meanImage2;
-    double meanPred2 = 0;
+    double meanPred2;
     double meanImagePred; // the value Image*Prediction
     double varianceImage;
 
-    double variancePred = 0;
+    double variancePred;
     double covariance;
 
     double a, b;
 
-    double *imagePred;
-
     const int numImages = getNumImages(params);
     const int numRes = getImageResolution(params);
 
-    const double MAX_VALUE = pow(10, 10);
+    double *imagePred = (double*)malloc(numRes*sizeof(double));
+
+    const double MAX_VALUE = pow(10, 50);
     const double EPSILON = pow(10, -15);
 
     double toReturn;
-
-    imagePred = (double*)malloc(numRes*sizeof(double));
 
     if(getNumChromosomeInputs(chromo) !=getNumDataSetInputs(data)){
         printf("Error: the number of chromosome inputs must match the number of inputs specified in the dataSet.\n");
@@ -77,29 +74,27 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
         exit(0);
     }
 
-    //TODO: compare this
+    meanPred = 0;
+    meanPred2 = 0;
     for (p=0; p<numRes; p++) {
         executeChromosome(chromo, getDataSetSampleInputs(data, p));
-        //imagePred[p] = getChromosomeOutput(chromo,0);
         double pixel = getChromosomeOutput(chromo,0);
         imagePred[p] = pixel;
-
-        // mean calculation
-        //meanPred += imagePred[p] / numRes;
         meanPred += pixel;
         meanPred2 += pixel * pixel;
     }
     meanPred /= numRes;
     meanPred2 /= numRes;
     variancePred = meanPred2 - meanPred * meanPred;
-    // and embedded mean function
-    // ...
 
-    /*// and also predict variance and embedded variance function
-    for (p=0; p<numRes; p++){
-        double diff = imagePred[p] - meanPred;
-        variancePred += diff * diff / numRes;
-    }*/
+    if (!isfinite(variancePred)){
+        totalError = MAX_VALUE;
+        for (i=0; i<numImages; i++) {
+            setA(chromo, i, 0);
+            setB(chromo, i, 0);
+        }
+        return totalError;
+    }
 
     for (i=0; i<numImages; i++) {
         meanImage = 0;
@@ -107,7 +102,6 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
         meanImage2 = 0;
         meanImagePred = 0;
 
-        //TODO: compare this
         for (p=0; p<numRes; p++) {
             double pixel = getDataSetSampleOutput(data, i*numRes + p, 0);
             meanImage += pixel;
@@ -116,30 +110,13 @@ double partialModelError(struct parameters *params, struct chromosome *chromo, s
         }
         meanImage /= numRes;
         meanImage2 /= numRes;
-        varianceImage /= meanImage2 - meanImage * meanImage;
-        covariance = (meanImagePred - numRes * meanImage * meanPred) / (numRes - 1); // /varianceImage/variancePred;
-        // and embedded mean function
-        // ...
+        varianceImage = meanImage2 - meanImage * meanImage;
+        covariance = (meanImagePred - numRes * meanImage * meanPred) / (numRes - 1);
 
-        /*// calculation of covariance
-        covariance = 0;
-        for (p=0; p<numRes; p++) {
-            covariance +=  (imagePred[p] - meanPred) * (getDataSetSampleOutput(data,i*numRes + p,0) - meanImage) / numRes;
-        }*/
-
-        if (!isfinite(variancePred)){
-//            cout << "Oops!: " << variancePred << endl;
-//            cout << "meanPred: " << meanPred << endl;
-            totalError = MAX_VALUE;
-            setA(chromo, i, EPSILON);
-            setB(chromo, i, EPSILON);
-            continue;
-        }
-
-        if (variancePred < EPSILON) {
-            totalError = MAX_VALUE;
-            setA(chromo, i, EPSILON);
-            setB(chromo, i, EPSILON);
+        if (!isfinite(covariance)){
+            totalError += MAX_VALUE / numImages;
+            setA(chromo, i, 0);
+            setB(chromo, i, 0);
             continue;
         }
         // save A and B coefficients (linear scaling)
@@ -246,12 +223,7 @@ int learn_features(char* func_set, int max_int_iter, int ext_iter, const int wid
     double meanRunningTime = 0, meanUpdatingTime = 0;
 
     params = initialiseParameters(numInputs, numNodes, numOutputs, nodeArity);
-    //addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,sig,tanh");
-    //addNodeFunction(params, "add,sub,mul,div,sin,pow,exp,1,0,sq,sqrt,step,sig,tanh");
-    //addNodeFunction(params, "add,sub,mul,div,sig,1,min,max,not,xor,and,or,wire,step");
     addNodeFunction(params, func_set);
-    addCustomNodeFunction(params, min, "min", -1);
-    addCustomNodeFunction(params, max, "max", -1);
 
     //    important detail for GPFL
     setCustomFitnessFunction(params, partialModelError, "partialModelError");
@@ -352,8 +324,8 @@ int learn_features(char* func_set, int max_int_iter, int ext_iter, const int wid
 
 
 int main() {
-    char func_set[] = "add,sub,mul,div,pow,exp,sig,1,0,wire,sin,cos";
-    //char func_set[] = "add,sub,mul,div,sq,sqrt,tanh,1,0,wire,sin,cos";
+    char func_set[] = "add,sub,mul,div,pow,exp,sig,1,0,wire,sin,cos,min,max";
+    //char func_set[] = "add,sub,mul,div,sq,sqrt,tanh,1,0,wire,sin,cos,min,max";
     const int ext_iter = 12;
     const int int_iter = 10;
     const int width = 256;
@@ -379,11 +351,10 @@ int main() {
 
     end_time = time(nullptr);
 
-    int hours = 0, minutes = 0, seconds = 0;
     int total = difftime(end_time, start_time);
 
     cout << "Total time: " << total << " seconds" << endl;
-    cout << "\tor " << total / 3600 << " hours " << total % 3600 / 60 << " minutes " << total % 3600 << " seconds" << endl;
+    cout << "\tor " << total / 3600 << " hours " << total % 3600 / 60 << " minutes " << total % 60 << " seconds" << endl;
 
     return 0;
 }

@@ -208,6 +208,9 @@ static double _gaussian(const int numInputs, const double *inputs, const double 
 static double _step(const int numInputs, const double *inputs, const double *connectionWeights);
 static double _softsign(const int numInputs, const double *inputs, const double *connectionWeights);
 static double _hyperbolicTangent(const int numInputs, const double *inputs, const double *connectionWeights);
+// added by: DNA
+static double _min(const int numInputs, const double *inputs, const double *connectionWeights);
+static double _max(const int numInputs, const double *inputs, const double *connectionWeights);
 
 /* other */
 static double randDecimal(void);
@@ -482,6 +485,14 @@ static int addPresetFunctionToFunctionSet(struct parameters *params, char const 
 	else if (strncmp(functionName, "tan", FUNCTIONNAMELENGTH) == 0) {
 		addCustomNodeFunction(params, _tangent, "tan", 1);
 	}
+	// added by: DNA
+	else if (strncmp(functionName, "min", FUNCTIONNAMELENGTH) == 0) {
+		addCustomNodeFunction(params, _min, "min", -1);
+	}
+	else if (strncmp(functionName, "max", FUNCTIONNAMELENGTH) == 0) {
+		addCustomNodeFunction(params, _max, "max", -1);
+	}
+
 
 
 	/* Boolean logic gates */
@@ -854,6 +865,15 @@ DLL_EXPORT void setNumThreads(struct parameters *params, int numThreads) {
 
 	params->numThreads = numThreads;
 }
+
+    // added by: DNA
+
+DLL_EXPORT int getNumThreads(struct parameters *params) {
+    return params->numThreads;
+}
+
+    //
+
 
 
 /*
@@ -3895,6 +3915,36 @@ static double _cosine(const int numInputs, const double *inputs, const double *c
 static double _tangent(const int numInputs, const double *inputs, const double *connectionWeights) {
 
 	return tan(inputs[0]);
+}
+
+// added by: DNA
+
+static double _min(const int numInputs, const double *inputs, const double *connectionWeights) {
+
+	int i;
+	double currentMin= inputs[0];
+
+	for (i = 1; i < numInputs; i++) {
+		if (inputs[i] < currentMin)
+			currentMin = inputs[i];
+	}
+
+	return currentMin;
+}
+
+// added by: DNA
+
+static double _max(const int numInputs, const double *inputs, const double *connectionWeights) {
+
+	int i;
+	double currentMax= inputs[0];
+
+	for (i = 1; i < numInputs; i++) {
+		if (inputs[i] > currentMax)
+			currentMax = inputs[i];
+	}
+
+	return currentMax;
 }
 
 

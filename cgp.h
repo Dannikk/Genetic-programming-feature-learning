@@ -876,6 +876,12 @@ DLL_EXPORT void setUpdateFrequency(struct parameters *params, int updateFrequenc
 */
 DLL_EXPORT void setNumThreads(struct parameters *params, int numThreads);
 
+// added by: DNA
+
+DLL_EXPORT int getNumThreads(struct parameters *params);
+
+//
+
 
 /*
 	Title: Chromosome Functions
